@@ -120,15 +120,17 @@ public class MobileContentCache extends ContentCache {
     }
 
     /**
-     * @param oldContentThreshold value when old entries should be deleted. put NaN if don't need deleting of the data;
+     * @param oldContentThreshold time after old unused entries should be deleted. put NaN if don't need deleting of the data;
+     * @param maxActiveRequests
+     * @param maxCacheEntries
      */
-    public function MobileContentCache(oldContentThreshold:Number = 2592000000) {
+    public function MobileContentCache(maxActiveRequests:int = 50, maxCacheEntries:int = 1000, oldContentThreshold:Number = 2592000000) {
         super();
-        maxActiveRequests = 20;
-        maxCacheEntries = 1000;
+        this.maxActiveRequests = maxActiveRequests;
+        this.maxCacheEntries = maxCacheEntries;
+        this.oldContentThreshold = oldContentThreshold;
         enableCaching = true;
         enableQueueing = true;
-        this.oldContentThreshold = oldContentThreshold;
     }
 
     override public function load(source:Object, contentLoaderGrouping:String = null):ContentRequest {
@@ -170,10 +172,10 @@ public class MobileContentCache extends ContentCache {
 
     private function attachLoadingListeners(loadingContent:LoaderInfo):void {
         if (loadingContent) {
-            loadingContent.addEventListener(Event.COMPLETE, onLoadComplete, false, 0, true);
-            loadingContent.addEventListener(IOErrorEvent.IO_ERROR, onLoadError, false, 0, true);
-            loadingContent.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onLoadError, false, 0, true);
-            loadingContent.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onLoadError, false, 0, true);
+            loadingContent.addEventListener(Event.COMPLETE, onLoadComplete);
+            loadingContent.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+            loadingContent.addEventListener(SecurityErrorEvent.SECURITY_ERROR, onLoadError);
+            loadingContent.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onLoadError);
         }
     }
 
