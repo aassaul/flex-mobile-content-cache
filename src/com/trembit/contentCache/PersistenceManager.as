@@ -14,7 +14,7 @@ package com.trembit.contentCache {
 		//
 		//--------------------------------------------------------------------------
 
-		private var SHARED_OBJECT_NAME:String;
+		private var _sharedobjectname:String;
 
 		//--------------------------------------------------------------------------
 		//
@@ -23,7 +23,7 @@ package com.trembit.contentCache {
 		//--------------------------------------------------------------------------
 		public function PersistenceManager(soName:String){
 			super();
-			SHARED_OBJECT_NAME = soName;
+			_sharedobjectname = soName;
 		}
 		//--------------------------------------------------------------------------
 		//
@@ -63,7 +63,7 @@ package com.trembit.contentCache {
 
 			try
 			{
-				so = SharedObject.getLocal(SHARED_OBJECT_NAME);
+				so = SharedObject.getLocal(_sharedobjectname);
 				initialized = true;
 			}
 			catch (e:Error)
@@ -110,24 +110,6 @@ package com.trembit.contentCache {
 				return so.data[key];
 
 			return null;
-		}
-
-		/**
-		 *  @inheritDoc
-		 *
-		 *  @langversion 3.0
-		 *  @playerversion AIR 2.5
-		 *  @productversion Flex 4.5
-		 */
-		public function clear():void
-		{
-			// If the persistence manager hasn't been initialized, do so now
-			if (!initialized)
-				load();
-
-			// Make sure the shared object is valid since initialization fails silently
-			if (so != null)
-				so.clear();
 		}
 
 		/**
