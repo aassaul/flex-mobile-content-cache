@@ -6,7 +6,7 @@
         <dependencies target-player="17.0">
           <entries>
             <entry library-id="e9703e7c-4af1-4c66-bd9b-cf0f9623936b">
-              <dependency linkage="Merged" />
+              <dependency linkage="External" />
             </entry>
             <entry library-name="flexunit" library-level="application">
               <dependency linkage="Test" />

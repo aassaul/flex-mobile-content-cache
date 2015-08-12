@@ -31,16 +31,17 @@ import spark.core.ContentRequest;
 [Event(name="contentSaved", type="flash.events.Event")]
 public class MobileContentCache extends ContentCache {
 
-    private static const URL_MAP:Object = loadContentMap();
+    private static const STORE_STRING:String = "contentCache";
+    private static const DESCRIPTOR_STORAGE:PersistenceManager = new PersistenceManager("contentCacheSO");
     private static const URLS_IN_PROCESS:ArrayCollection = new ArrayCollection();
+    private static var urlMap:Object = null;
 
     private static function isRemoteURL(source:String):Boolean {
         return (source.indexOf("http") == 0);
     }
 
     private static function loadContentMap():Object{
-        var mapBytes:ByteArray = EncryptedLocalStore.getItem("contentCache");
-        var map:Object = (!mapBytes || !mapBytes.bytesAvailable)?{}:mapBytes.readObject();
+        var map:Object = DESCRIPTOR_STORAGE.load()?(DESCRIPTOR_STORAGE.getProperty(STORE_STRING)||getOldMap()):getOldMap();
         var keysForDelete:Array = [];
         for (var key:String in map) {
             if(map.hasOwnProperty(key) && !(map[key] is ContentInfo)){
@@ -60,6 +61,17 @@ public class MobileContentCache extends ContentCache {
                 delete map[keyForDelete];
             }
         }
+        saveContentMap();
+        return map;
+    }
+
+    private static function getOldMap():Object{
+        try{
+            var mapBytes:ByteArray = EncryptedLocalStore.getItem(STORE_STRING);
+            var map:Object = (!mapBytes || !mapBytes.bytesAvailable)?{}:mapBytes.readObject();
+        } catch(e:*){
+            return {};
+        }
         return map;
     }
 
@@ -69,31 +81,42 @@ public class MobileContentCache extends ContentCache {
         }
         var keysForDelete:Array = [];
         var nowTime:Number = new Date().time;
-        for (var key:String in URL_MAP) {
-            if(URL_MAP.hasOwnProperty(key) && ((nowTime - ContentInfo(URL_MAP[key]).lastTime) > oldContentThreshold)){
+        for (var key:String in urlMap) {
+            if(urlMap.hasOwnProperty(key) && ((nowTime - ContentInfo(urlMap[key]).lastTime) > oldContentThreshold)){
                 keysForDelete[keysForDelete.length] = key;
             }
         }
         if(keysForDelete.length){
             for each (var keyForDelete:String in keysForDelete) {
-                var file:File = getContentFileByName(URL_MAP[keyForDelete].fileName);
+                var file:File = getContentFileByName(urlMap[keyForDelete].fileName);
                 if(file){
                     file.deleteFile();
                 }
-                delete URL_MAP[keyForDelete];
+                delete urlMap[keyForDelete];
             }
         }
         saveContentMap();
     }
 
     private static function saveContentMap():void{
+        if(!DESCRIPTOR_STORAGE.load()){
+            saveContentMapOld();
+        }else{
+            DESCRIPTOR_STORAGE.setProperty(STORE_STRING, urlMap);
+            if(!DESCRIPTOR_STORAGE.save()){
+                saveContentMapOld();
+            }
+        }
+    }
+
+    private static function saveContentMapOld():void{
         var mapBytes:ByteArray = new ByteArray();
-        mapBytes.writeObject(URL_MAP);
-        EncryptedLocalStore.setItem("contentCache", mapBytes);
+        mapBytes.writeObject(urlMap);
+        EncryptedLocalStore.setItem(STORE_STRING, mapBytes);
     }
 
     private static function getContentFileByName(name:String):File{
-        var contentDir:File = File.cacheDirectory.resolvePath("contentCache");
+        var contentDir:File = File.cacheDirectory.resolvePath(STORE_STRING);
         if(!contentDir.exists){
             return null;
         }
@@ -102,7 +125,7 @@ public class MobileContentCache extends ContentCache {
     }
 
     private static function createContentFile():File{
-        var contentDir:File = File.cacheDirectory.resolvePath("contentCache");
+        var contentDir:File = File.cacheDirectory.resolvePath(STORE_STRING);
         contentDir.createDirectory();
         var file:File = contentDir.resolvePath(UIDUtil.createUID()+".png");
         return file;
@@ -126,6 +149,9 @@ public class MobileContentCache extends ContentCache {
      */
     public function MobileContentCache(maxActiveRequests:int = 50, maxCacheEntries:int = 1000, oldContentThreshold:Number = 2592000000) {
         super();
+        if(urlMap === null){
+            urlMap = loadContentMap();
+        }
         this.maxActiveRequests = maxActiveRequests;
         this.maxCacheEntries = maxCacheEntries;
         this.oldContentThreshold = oldContentThreshold;
@@ -136,7 +162,7 @@ public class MobileContentCache extends ContentCache {
     override public function load(source:Object, contentLoaderGrouping:String = null):ContentRequest {
         var key:Object = source is URLRequest ? URLRequest(source).url : source;
         if ((key is String) && isRemoteURL(String(key))) {
-            var contentInfo:ContentInfo = URL_MAP[key];
+            var contentInfo:ContentInfo = urlMap[key];
             if(contentInfo){
                 var file:File = getContentFileByName(contentInfo.fileName);
                 if(file){
@@ -148,7 +174,7 @@ public class MobileContentCache extends ContentCache {
                         super.load(source, contentLoaderGrouping);
                     }
                 }else{
-                    delete URL_MAP[key];
+                    delete urlMap[key];
                     saveContentMap();
                     return startListenForContent(super.load(source, contentLoaderGrouping));
                 }
@@ -223,7 +249,7 @@ public class MobileContentCache extends ContentCache {
             fs.open(file, FileMode.WRITE);
             fs.writeBytes(encoder.encodedBytes, 0, encoder.encodedBytes.length);
             var contentInfo:ContentInfo = new ContentInfo(file.name, url, new Date().time);
-            URL_MAP[url] = contentInfo;
+            urlMap[url] = contentInfo;
             saveContentMap();
             dispatchEvent(new Event("contentSaved"));
         }catch(e:*){
