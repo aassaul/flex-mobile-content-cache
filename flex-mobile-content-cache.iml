@@ -11,6 +11,9 @@
             <entry library-name="flexunit" library-level="application">
               <dependency linkage="Test" />
             </entry>
+            <entry library-id="15029fc5-0e7a-49bd-b640-78d2ea0376fd">
+              <dependency linkage="Merged" />
+            </entry>
           </entries>
           <sdk name="4.14.0.air-17.0" />
         </dependencies>
@@ -42,5 +45,16 @@
       </library>
     </orderEntry>
     <orderEntry type="library" exported="" name="flexunit" level="application" />
+    <orderEntry type="module-library" exported="">
+      <library type="flex">
+        <properties id="15029fc5-0e7a-49bd-b640-78d2ea0376fd" />
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/anes" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/anes" recursive="false" />
+      </library>
+    </orderEntry>
   </component>
 </module>
